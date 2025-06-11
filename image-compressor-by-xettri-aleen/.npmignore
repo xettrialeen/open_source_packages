@@ -1,0 +1,26 @@
+# Source files
+src/
+test/
+*.config.js
+*.config.ts
+
+# Development files
+.git/
+.gitignore
+.eslintrc*
+.prettierrc*
+tsconfig.json
+rollup.config.js
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+*.tgz
+.DS_Store
+Thumbs.db
