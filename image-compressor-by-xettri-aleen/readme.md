@@ -1172,7 +1172,7 @@ bash
 
 ```
 # Clone the repository
-git clone https://github.com/yourusername/image-compressor-by-xettri-aleen.git
+git clone https://github.com/xettrialeen/open_source_packages/tree/main/image-compressor-by-xettri-aleen.git
 cd image-compressor-by-xettri-aleen
 
 # Install dependencies

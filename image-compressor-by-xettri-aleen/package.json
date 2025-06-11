@@ -1,6 +1,6 @@
 {
     "name": "image-compressor-by-xettri-aleen",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Smart image compression with automatic CSP fallbacks and modern browser support",
     "main": "dist/index.js",
     "module": "dist/index.esm.js",
@@ -13,17 +13,15 @@
         "README.md",
         "LICENSE"
     ],
-
-        "scripts": {
-          "build": "npm run build:clean && rollup -c",
-          "build:clean": "rimraf dist",
-          "build:dev": "rollup -c -w",
-          "build:prod": "cross-env NODE_ENV=production rollup -c",
-          "test": "jest",
-          "prepublishOnly": "npm run build:prod",
-          "dev": "npm run build:dev"
-        },
-   
+    "scripts": {
+        "build": "npm run build:clean && rollup -c",
+        "build:clean": "rimraf dist",
+        "build:dev": "rollup -c -w",
+        "build:prod": "cross-env NODE_ENV=production rollup -c",
+        "test": "jest",
+        "prepublishOnly": "npm run build:prod",
+        "dev": "npm run build:dev"
+    },
     "keywords": [
         "image",
         "compression",
