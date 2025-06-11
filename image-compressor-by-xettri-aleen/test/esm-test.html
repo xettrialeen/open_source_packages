@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Squash - ES Module Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:disabled {
+            background: #6c757d;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗜️ Image Squash - ES Module Test</h1>
+        <p>Testing the ES module build with modern JavaScript imports.</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>📁 Select an image to test ES module functionality</h3>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+        
+        <button id="testBtn" disabled>🧪 Run ES Module Tests</button>
+        <button id="clearBtn">🗑️ Clear Output</button>
+        
+        <div id="results"></div>
+        <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <script type="module">
+        // Import using ES modules
+        import { 
+            compressImage, 
+            createCompressor, 
+            QUALITY_PRESETS, 
+            FORMAT_OPTIONS 
+        } from '../dist/index.esm.js';
+        
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const testBtn = document.getElementById('testBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const results = document.getElementById('results');
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        let selectedFile = null;
+        
+        // Console override
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            consoleOutput.innerHTML += args.join(' ') + '\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        // File handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                uploadArea.innerHTML = `<h3>✅ Selected: ${selectedFile.name}</h3>`;
+                testBtn.disabled = false;
+            }
+        });
+        
+        // Test runner
+        testBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            testBtn.disabled = true;
+            results.innerHTML = '';
+            
+            console.log('🚀 Starting ES Module Tests');
+            console.log('📦 Testing file:', selectedFile.name);
+            
+            try {
+                // Test 1: Basic compression
+                console.log('\n🧪 Test 1: Basic compression with default options');
+                const result1 = await compressImage(selectedFile, {
+                    enableLogging: true,
+                    logLevel: 'detailed'
+                });
+                console.log('✅ Test 1 passed');
+                
+                // Test 2: Custom quality preset
+                console.log('\n🧪 Test 2: Using quality presets');
+                const result2 = await compressImage(selectedFile, {
+                    quality: QUALITY_PRESETS.LOW,
+                    format: FORMAT_OPTIONS.JPEG,
+                    enableLogging: true
+                });
+                console.log('✅ Test 2 passed');
+                
+                // Test 3: Custom compressor
+                console.log('\n🧪 Test 3: Creating custom compressor');
+                const customCompressor = createCompressor({
+                    quality: QUALITY_PRESETS.HIGH,
+                    format: FORMAT_OPTIONS.WEBP,
+                    enableLogging: true,
+                    maxWidth: 800
+                });
+                
+                const result3 = await customCompressor.compress(selectedFile);
+                console.log('✅ Test 3 passed');
+                
+                // Test 4: Error handling
+                console.log('\n🧪 Test 4: Error handling test');
+                try {
+                    await compressImage(null);
+                } catch (error) {
+                    console.log('✅ Error handling works:', error.message);
+                }
+                
+                // Display summary
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'results';
+                summaryDiv.innerHTML = `
+                    <h3>✅ All ES Module Tests Passed!</h3>
+                    <p><strong>Available exports:</strong></p>
+                    <ul>
+                        <li>compressImage ✓</li>
+                        <li>createCompressor ✓</li>
+                        <li>QUALITY_PRESETS ✓</li>
+                        <li>FORMAT_OPTIONS ✓</li>
+                    </ul>
+                    <p><strong>Results:</strong></p>
+                    <ul>
+                        <li>Default compression: ${result1.stats.compressionRatio}% reduction</li>
+                        <li>Low quality JPEG: ${result2.stats.compressionRatio}% reduction</li>
+                        <li>High quality WebP: ${result3.stats.compressionRatio}% reduction</li>
+                    </ul>
+                `;
+                results.appendChild(summaryDiv);
+                
+                console.log('\n🎉 All tests completed successfully!');
+                
+            } catch (error) {
+                console.log('❌ Test failed:', error.message);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'results';
+                errorDiv.style.background = '#f8d7da';
+                errorDiv.innerHTML = `<h3>❌ Test Failed</h3><p>${error.message}</p>`;
+                results.appendChild(errorDiv);
+            }
+            
+            testBtn.disabled = false;
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            consoleOutput.innerHTML = '';
+            results.innerHTML = '';
+        });
+        
+        // Initialize
+        console.log('🎉 ES Module Test Page Loaded!');
+        console.log('📦 Imported functions:', { 
+            compressImage: typeof compressImage,
+            createCompressor: typeof createCompressor,
+            QUALITY_PRESETS: Object.keys(QUALITY_PRESETS),
+            FORMAT_OPTIONS: Object.keys(FORMAT_OPTIONS)
+        });
+    </script>
+</body>
+</html>

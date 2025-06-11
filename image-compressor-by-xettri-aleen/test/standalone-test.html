@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Squash - Standalone Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗜️ Image Squash - Standalone Build Test</h1>
+        <p>Testing the standalone build that includes all dependencies.</p>
+        
+        <div class="status" id="loadStatus">
+            <h3>📦 Checking standalone build...</h3>
+        </div>
+        
+        <div class="upload-area" id="uploadArea" style="display: none;">
+            <h3>📁 Select an image to test</h3>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+        
+        <button id="testBtn" disabled style="display: none;">🧪 Test Compression Methods</button>
+        
+        <div id="results"></div>
+        <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <script src="../dist/index.standalone.js"></script>
+    <script>
+        const loadStatus = document.getElementById('loadStatus');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const testBtn = document.getElementById('testBtn');
+        const results = document.getElementById('results');
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        let selectedFile = null;
+        
+        // Console override
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            consoleOutput.innerHTML += args.join(' ') + '\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        // Check if standalone build loaded correctly
+        function checkStandaloneBuild() {
+            console.log('🔍 Checking standalone build status...');
+            
+            if (typeof ImageSquash !== 'undefined') {
+                console.log('✅ ImageSquash global found');
+                console.log('📦 Available methods:', Object.keys(ImageSquash));
+                
+                // Check all expected methods
+                const expectedMethods = ['compress', 'compressMultiple', 'createCompressor'];
+                const missingMethods = expectedMethods.filter(method => 
+                    typeof ImageSquash[method] !== 'function'
+                );
+                
+                if (missingMethods.length === 0) {
+                    loadStatus.innerHTML = `
+                        <h3>✅ Standalone build loaded successfully!</h3>
+                        <p>All compression methods are available without external dependencies.</p>
+                        <ul>
+                            <li>compress() ✓</li>
+                            <li>compressMultiple() ✓</li>
+                            <li>createCompressor() ✓</li>
+                        </ul>
+                    `;
+                    loadStatus.style.borderLeftColor = '#28a745';
+                    loadStatus.style.background = '#d1e7dd';
+                    
+                    uploadArea.style.display = 'block';
+                    testBtn.style.display = 'inline-block';
+                    
+                } else {
+                    throw new Error(`Missing methods: ${missingMethods.join(', ')}`);
+                }
+                
+            } else {
+                throw new Error('ImageSquash global not found - standalone build failed to load');
+            }
+        }
+        
+        // File handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                uploadArea.innerHTML = `<h3>✅ Selected: ${selectedFile.name}</h3>`;
+                testBtn.disabled = false;
+            }
+        });
+        
+        // Test different compression methods
+        testBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            testBtn.disabled = true;
+            results.innerHTML = '';
+            
+            console.log('🚀 Starting comprehensive compression method tests');
+            console.log('📁 Testing file:', selectedFile.name);
+            
+            const testResults = [];
+            
+            try {
+                // Test each compression method
+                const methods = [
+                    { name: 'Auto (Default)', options: {} },
+                    { name: 'Canvas Method', options: { preferredMethod: 'canvas' } },
+                    { name: 'Worker Method', options: { preferredMethod: 'worker' } },
+                    { name: 'Lightweight Method', options: { preferredMethod: 'lightweight' } }
+                ];
+                
+                for (const method of methods) {
+                    console.log(`\n🧪 Testing ${method.name}...`);
+                    
+                    try {
+                        const startTime = performance.now();
+                        const result = await ImageSquash.compress(selectedFile, {
+                            ...method.options,
+                            quality: 0.8,
+                            format: 'webp',
+                            enableLogging: true,
+                            logLevel: 'detailed'
+                        });
+                        const endTime = performance.now();
+                        
+                        testResults.push({
+                            method: method.name,
+                            actualMethod: result.method,
+                            success: true,
+                            compressionRatio: result.stats.compressionRatio,
+                            originalSize: result.stats.originalSize,
+                            compressedSize: result.stats.compressedSize,
+                            processingTime: Math.round(endTime - startTime)
+                        });
+                        
+                        console.log(`✅ ${method.name} completed successfully`);
+                        console.log(`   Actual method used: ${result.method}`);
+                        console.log(`   Compression: ${result.stats.compressionRatio}%`);
+                        
+                    } catch (error) {
+                        console.log(`❌ ${method.name} failed: ${error.message}`);
+                        testResults.push({
+                            method: method.name,
+                            success: false,
+                            error: error.message
+                        });
+                    }
+                }
+                
+                // Display results
+                displayTestResults(testResults);
+                
+            } catch (error) {
+                console.log('❌ Test suite failed:', error.message);
+            }
+            
+            testBtn.disabled = false;
+        });
+        
+        function displayTestResults(testResults) {
+            const resultsDiv = document.createElement('div');
+            resultsDiv.innerHTML = '<h3>📊 Compression Method Test Results</h3>';
+            
+            const successful = testResults.filter(r => r.success);
+            const failed = testResults.filter(r => !r.success);
+            
+            // Summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'status';
+            summaryDiv.innerHTML = `
+                <h4>📈 Test Summary</h4>
+                <p><strong>Successful methods:</strong> ${successful.length}/${testResults.length}</p>
+                <p><strong>Failed methods:</strong> ${failed.length}/${testResults.length}</p>
+            `;
+            
+            if (successful.length > 0) {
+                summaryDiv.style.borderLeftColor = '#28a745';
+                summaryDiv.style.background = '#d1e7dd';
+            }
+            
+            resultsDiv.appendChild(summaryDiv);
+            
+            // Detailed results
+            testResults.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'status';
+                
+                if (result.success) {
+                    resultDiv.style.borderLeftColor = '#28a745';
+                    resultDiv.style.background = '#d1e7dd';
+                    resultDiv.innerHTML = `
+                        <h4>✅ ${result.method}</h4>
+                        <ul>
+                            <li><strong>Actual method:</strong> ${result.actualMethod}</li>
+                            <li><strong>Compression:</strong> ${result.compressionRatio}% reduction</li>
+                            <li><strong>Size:</strong> ${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)}</li>
+                            <li><strong>Processing time:</strong> ${result.processingTime}ms</li>
+                        </ul>
+                    `;
+                } else {
+                    resultDiv.style.borderLeftColor = '#dc3545';
+                    resultDiv.style.background = '#f8d7da';
+                    resultDiv.innerHTML = `
+                        <h4>❌ ${result.method}</h4>
+                        <p><strong>Error:</strong> ${result.error}</p>
+                    `;
+                }
+                
+                resultsDiv.appendChild(resultDiv);
+            });
+            
+            results.appendChild(resultsDiv);
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        // Initialize
+        console.log('🎉 Standalone test page loaded');
+        
+        try {
+            checkStandaloneBuild();
+        } catch (error) {
+            console.log('❌ Standalone build check failed:', error.message);
+            loadStatus.innerHTML = `
+                <h3>❌ Standalone build failed to load</h3>
+                <p>${error.message}</p>
+                <p>Make sure you've built the standalone version with: <code>npm run build</code></p>
+            `;
+            loadStatus.style.borderLeftColor = '#dc3545';
+            loadStatus.style.background = '#f8d7da';
+        }
+    </script>
+</body>
+</html>

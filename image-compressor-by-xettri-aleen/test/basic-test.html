@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Squash - Basic Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .success {
+            background: #d1e7dd;
+            border-left-color: #198754;
+            color: #0f5132;
+        }
+        .image-preview {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .image-container {
+            text-align: center;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background: white;
+        }
+        .image-container img {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 5px;
+        }
+        .image-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .progress {
+            margin: 10px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗜️ Image Squash - Basic Test</h1>
+        <p>Test the image compression functionality with different options and see real-time results.</p>
+        
+        <!-- File Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <h3>📁 Drop images here or click to select</h3>
+            <p>Supports: JPG, PNG, WebP</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" multiple>
+        </div>
+        
+        <!-- Compression Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="quality">Quality:</label>
+                <select id="quality">
+                    <option value="0.4">Low (40%)</option>
+                    <option value="0.7" selected>Medium (70%)</option>
+                    <option value="0.9">High (90%)</option>
+                    <option value="1.0">Lossless (100%)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="format">Output Format:</label>
+                <select id="format">
+                    <option value="webp" selected>WebP</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="maxWidth">Max Width (px):</label>
+                <input type="number" id="maxWidth" placeholder="Leave empty for original">
+            </div>
+            
+            <div class="control-group">
+                <label for="maxHeight">Max Height (px):</label>
+                <input type="number" id="maxHeight" placeholder="Leave empty for original">
+            </div>
+            
+            <div class="control-group">
+                <label for="method">Compression Method:</label>
+                <select id="method">
+                    <option value="">Auto (recommended)</option>
+                    <option value="canvas">Canvas</option>
+                    <option value="worker">Web Worker</option>
+                    <option value="wasm">WASM</option>
+                    <option value="lightweight">Lightweight</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="logging">Enable Logging:</label>
+                <select id="logging">
+                    <option value="false">Off</option>
+                    <option value="basic" selected>Basic</option>
+                    <option value="detailed">Detailed</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div>
+            <button id="compressBtn" disabled>🗜️ Compress Images</button>
+            <button id="clearBtn">🗑️ Clear All</button>
+            <button id="downloadAllBtn" disabled>📥 Download All</button>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="progress" id="progressContainer" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">Processing...</div>
+        </div>
+        
+        <!-- Results Display -->
+        <div id="results"></div>
+        
+        <!-- Image Preview -->
+        <div class="image-preview" id="imagePreview"></div>
+        
+        <!-- Console Output -->
+        <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <!-- Load the compressed library -->
+    <script src="../dist/index.js"></script>
+    <script>
+        // Global variables
+        let selectedFiles = [];
+        let compressionResults = [];
+        
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const compressBtn = document.getElementById('compressBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const results = document.getElementById('results');
+        const imagePreview = document.getElementById('imagePreview');
+        const consoleOutput = document.getElementById('consoleOutput');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        
+        // Override console.log to show in our custom console
+        const originalConsoleLog = console.log;
+        const originalConsoleGroup = console.group;
+        const originalConsoleGroupEnd = console.groupEnd;
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            consoleOutput.innerHTML += args.join(' ') + '\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        console.group = function(title) {
+            originalConsoleGroup.apply(console, arguments);
+            consoleOutput.innerHTML += `\n=== ${title} ===\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        console.groupEnd = function() {
+            originalConsoleGroupEnd.apply(console, arguments);
+            consoleOutput.innerHTML += '===============\n\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        // File upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        function handleFiles(files) {
+            selectedFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            updateUI();
+            displayImagePreviews();
+        }
+        
+        function updateUI() {
+            compressBtn.disabled = selectedFiles.length === 0;
+            downloadAllBtn.disabled = compressionResults.length === 0;
+            
+            if (selectedFiles.length > 0) {
+                uploadArea.innerHTML = `
+                    <h3>✅ ${selectedFiles.length} image(s) selected</h3>
+                    <p>Click "Compress Images" to start processing</p>
+                `;
+            }
+        }
+        
+        function displayImagePreviews() {
+            imagePreview.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const container = document.createElement('div');
+                container.className = 'image-container';
+                
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.onload = () => URL.revokeObjectURL(img.src);
+                
+                const info = document.createElement('div');
+                info.className = 'image-info';
+                info.innerHTML = `
+                    <strong>${file.name}</strong><br>
+                    Size: ${formatBytes(file.size)}<br>
+                    Type: ${file.type}
+                `;
+                
+                container.appendChild(img);
+                container.appendChild(info);
+                imagePreview.appendChild(container);
+            });
+        }
+        
+        // Compression handling
+        compressBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+            
+            compressBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            results.innerHTML = '';
+            compressionResults = [];
+            
+            const options = {
+                quality: parseFloat(document.getElementById('quality').value),
+                format: document.getElementById('format').value,
+                maxWidth: parseInt(document.getElementById('maxWidth').value) || null,
+                maxHeight: parseInt(document.getElementById('maxHeight').value) || null,
+                enableLogging: document.getElementById('logging').value !== 'false',
+                logLevel: document.getElementById('logging').value === 'detailed' ? 'detailed' : 'basic',
+                preferredMethod: document.getElementById('method').value || null
+            };
+            
+            console.log('🚀 Starting compression with options:', JSON.stringify(options, null, 2));
+            
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    const progress = ((i + 1) / selectedFiles.length) * 100;
+                    
+                    progressFill.style.width = progress + '%';
+                    progressText.textContent = `Processing ${i + 1}/${selectedFiles.length}: ${file.name}`;
+                    
+                    console.log(`\n📁 Processing file ${i + 1}: ${file.name}`);
+                    
+                    const startTime = performance.now();
+                    const result = await ImageSquash.compressImage(file, options);
+                    const endTime = performance.now();
+                    
+                    const processingTime = Math.round(endTime - startTime);
+                    
+                    compressionResults.push({
+                        original: file,
+                        compressed: result,
+                        processingTime
+                    });
+                    
+                    console.log(`✅ Completed in ${processingTime}ms`);
+                }
+                
+                displayResults();
+                showSuccess(`Successfully compressed ${selectedFiles.length} image(s)!`);
+                
+            } catch (error) {
+                console.log('❌ Compression failed:', error.message);
+                showError('Compression failed: ' + error.message);
+            }
+            
+            compressBtn.disabled = false;
+            progressContainer.style.display = 'none';
+            updateUI();
+        });
+        
+        function displayResults() {
+            results.innerHTML = '<h3>📊 Compression Results</h3>';
+            
+            let totalOriginal = 0;
+            let totalCompressed = 0;
+            let totalTime = 0;
+            
+            compressionResults.forEach((result, index) => {
+                totalOriginal += result.original.size;
+                totalCompressed += result.compressed.stats.compressedSize;
+                totalTime += result.processingTime;
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'results success';
+                resultDiv.innerHTML = `
+                    <h4>📁 ${result.original.name}</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div><strong>Original:</strong> ${formatBytes(result.original.size)}</div>
+                        <div><strong>Compressed:</strong> ${formatBytes(result.compressed.stats.compressedSize)}</div>
+                        <div><strong>Savings:</strong> ${result.compressed.stats.compressionRatio}%</div>
+                        <div><strong>Method:</strong> ${result.compressed.method}</div>
+                        <div><strong>Format:</strong> ${result.compressed.stats.format}</div>
+                        <div><strong>Time:</strong> ${result.processingTime}ms</div>
+                    </div>
+                    <button onclick="downloadImage(${index})" style="margin-top: 10px;">📥 Download</button>
+                `;
+                results.appendChild(resultDiv);
+            });
+            
+            // Summary
+            const savings = Math.round(((totalOriginal - totalCompressed) / totalOriginal) * 100);
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'results';
+            summaryDiv.innerHTML = `
+                <h4>📈 Summary</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <div><strong>Total Original:</strong> ${formatBytes(totalOriginal)}</div>
+                    <div><strong>Total Compressed:</strong> ${formatBytes(totalCompressed)}</div>
+                    <div><strong>Total Savings:</strong> ${savings}%</div>
+                    <div><strong>Average Time:</strong> ${Math.round(totalTime / compressionResults.length)}ms per image</div>
+                </div>
+            `;
+            results.appendChild(summaryDiv);
+        }
+        
+        // Utility functions
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function showSuccess(message) {
+            const div = document.createElement('div');
+            div.className = 'results success';
+            div.innerHTML = '✅ ' + message;
+            results.appendChild(div);
+        }
+        
+        function showError(message) {
+            const div = document.createElement('div');
+            div.className = 'results error';
+            div.innerHTML = '❌ ' + message;
+            results.appendChild(div);
+        }
+        
+        function downloadImage(index) {
+            const result = compressionResults[index];
+            const url = URL.createObjectURL(result.compressed.blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = result.compressed.file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Clear and download all functionality
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            compressionResults = [];
+            results.innerHTML = '';
+            imagePreview.innerHTML = '';
+            consoleOutput.innerHTML = '';
+            uploadArea.innerHTML = `
+                <h3>📁 Drop images here or click to select</h3>
+                <p>Supports: JPG, PNG, WebP</p>
+            `;
+            updateUI();
+        });
+        
+        downloadAllBtn.addEventListener('click', () => {
+            compressionResults.forEach((result, index) => {
+                setTimeout(() => downloadImage(index), index * 100);
+            });
+        });
+        
+        // Initialize
+        console.log('🎉 Image Squash Test Page Loaded!');
+        console.log('📦 Available methods:', Object.keys(ImageSquash));
+        updateUI();
+    </script>
+</body>
+</html>

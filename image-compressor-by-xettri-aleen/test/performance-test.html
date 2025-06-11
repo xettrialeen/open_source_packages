@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Squash - Performance Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0; }
+        .test-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .results { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .upload-area { border: 3px dashed #ccc; padding: 20px; text-align: center; margin: 20px 0; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Image Squash - Performance Test</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>📁 Select multiple images for performance testing</h3>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" multiple>
+        </div>
+        
+        <div class="test-grid">
+            <div class="test-card">
+                <h3>⚡ Speed Test</h3>
+                <p>Test compression speed across different methods</p>
+                <button id="speedTest" disabled>Run Speed Test</button>
+                <div id="speedResults"></div>
+            </div>
+            
+            <div class="test-card">
+                <h3>📊 Quality Comparison</h3>
+                <p>Compare different quality settings</p>
+                <button id="qualityTest" disabled>Run Quality Test</button>
+                <div id="qualityResults"></div>
+            </div>
+            
+            <div class="test-card">
+                <h3>🔄 Format Comparison</h3>
+                <p>Test different output formats</p>
+                <button id="formatTest" disabled>Run Format Test</button>
+                <div id="formatResults"></div>
+            </div>
+            
+            <div class="test-card">
+                <h3>📏 Size Optimization</h3>
+                <p>Test different size constraints</p>
+                <button id="sizeTest" disabled>Run Size Test</button>
+                <div id="sizeResults"></div>
+            </div>
+        </div>
+        
+        <div id="overallResults"></div>
+    </div>
+
+    <script src="../dist/index.js"></script>
+    <script>
+        let selectedFiles = [];
+        
+        // File handling
+        document.getElementById('uploadArea').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            selectedFiles = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
+            if (selectedFiles.length > 0) {
+                document.getElementById('uploadArea').innerHTML = `<h3>✅ ${selectedFiles.length} images selected</h3>`;
+                enableAllTests();
+            }
+        });
+        
+        function enableAllTests() {
+            ['speedTest', 'qualityTest', 'formatTest', 'sizeTest'].forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+        }
+        
+        // Speed test
+        document.getElementById('speedTest').addEventListener('click', async () => {
+            const button = document.getElementById('speedTest');
+            const results = document.getElementById('speedResults');
+            
+            button.disabled = true;
+            results.innerHTML = '<p>🔄 Running speed tests...</p>';
+            
+            const methods = ['canvas', 'worker', 'lightweight'];
+            const speedResults = [];
+            
+            for (const method of methods) {
+                const startTime = performance.now();
+                try {
+                    await ImageSquash.compressImage(selectedFiles[0], {
+                        preferredMethod: method,
+                        quality: 0.8,
+                        enableLogging: false
+                    });
+                    const endTime = performance.now();
+                    speedResults.push({
+                        method,
+                        time: Math.round(endTime - startTime),
+                        success: true
+                    });
+                } catch (error) {
+                    speedResults.push({
+                        method,
+                        error: error.message,
+                        success: false
+                    });
+                }
+            }
+            
+            results.innerHTML = speedResults.map(result => 
+                result.success 
+                    ? `<div class="results">✅ ${result.method}: ${result.time}ms</div>`
+                    : `<div class="results">❌ ${result.method}: ${result.error}</div>`
+            ).join('');
+            
+            button.disabled = false;
+        });
+        
+        // Quality test
+        document.getElementById('qualityTest').addEventListener('click', async () => {
+            const button = document.getElementById('qualityTest');
+            const results = document.getElementById('qualityResults');
+            
+            button.disabled = true;
+            results.innerHTML = '<p>🔄 Testing different quality levels...</p>';
+            
+            const qualities = [0.3, 0.5, 0.7, 0.9];
+            const qualityResults = [];
+            
+            for (const quality of qualities) {
+                try {
+                    const result = await ImageSquash.compressImage(selectedFiles[0], {
+                        quality,
+                        enableLogging: false
+                    });
+                    qualityResults.push({
+                        quality: Math.round(quality * 100),
+                        compressionRatio: result.stats.compressionRatio,
+                        size: result.stats.compressedSize
+                    });
+                } catch (error) {
+                    console.error('Quality test failed:', error);
+                }
+            }
+            
+            results.innerHTML = qualityResults.map(result => `
+                <div class="results">
+                    Quality ${result.quality}%: ${result.compressionRatio}% reduction (${formatBytes(result.size)})
+                </div>
+            `).join('');
+            
+            button.disabled = false;
+        });
+        
+        // Format test
+        document.getElementById('formatTest').addEventListener('click', async () => {
+            const button = document.getElementById('formatTest');
+            const results = document.getElementById('formatResults');
+            
+            button.disabled = true;
+            results.innerHTML = '<p>🔄 Testing different formats...</p>';
+            
+            const formats = ['webp', 'jpeg', 'png'];
+            const formatResults = [];
+            
+            for (const format of formats) {
+                try {
+                    const result = await ImageSquash.compressImage(selectedFiles[0], {
+                        format,
+                        quality: 0.8,
+                        enableLogging: false
+                    });
+                    formatResults.push({
+                        format: format.toUpperCase(),
+                        compressionRatio: result.stats.compressionRatio,
+                        size: result.stats.compressedSize
+                    });
+                } catch (error) {
+                    console.error('Format test failed:', error);
+                }
+            }
+            
+            results.innerHTML = formatResults.map(result => `
+                <div class="results">
+                    ${result.format}: ${result.compressionRatio}% reduction (${formatBytes(result.size)})
+                </div>
+            `).join('');
+            
+            button.disabled = false;
+        });
+        
+        // Size optimization test
+        document.getElementById('sizeTest').addEventListener('click', async () => {
+            const button = document.getElementById('sizeTest');
+            const results = document.getElementById('sizeResults');
+            
+            button.disabled = true;
+            results.innerHTML = '<p>🔄 Testing size constraints...</p>';
+            
+            const sizeConfigs = [
+                { name: 'Original', maxWidth: null, maxHeight: null },
+                { name: '1920x1080', maxWidth: 1920, maxHeight: 1080 },
+                { name: '1280x720', maxWidth: 1280, maxHeight: 720 },
+                { name: '800x600', maxWidth: 800, maxHeight: 600 }
+            ];
+            
+            const sizeResults = [];
+            
+            for (const config of sizeConfigs) {
+                try {
+                    const result = await ImageSquash.compressImage(selectedFiles[0], {
+                        maxWidth: config.maxWidth,
+                        maxHeight: config.maxHeight,
+                        quality: 0.8,
+                        enableLogging: false
+                    });
+                    sizeResults.push({
+                        name: config.name,
+                        compressionRatio: result.stats.compressionRatio,
+                        size: result.stats.compressedSize
+                    });
+                } catch (error) {
+                    console.error('Size test failed:', error);
+                }
+            }
+            
+            results.innerHTML = sizeResults.map(result => `
+                <div class="results">
+                    ${result.name}: ${result.compressionRatio}% reduction (${formatBytes(result.size)})
+                </div>
+            `).join('');
+            
+            button.disabled = false;
+        });
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>
